@@ -8,13 +8,20 @@ using BanjirWatch.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway provides PORT environment variable - use it if available
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 // Add services to the container
 builder.Services.AddControllersWithViews();
 
-// Configure SQLite database
+// Configure SQLite database (use persistent path for Railway volume)
+var dbPath = Environment.GetEnvironmentVariable("DATABASE_PATH") ?? "BanjirWatch.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=BanjirWatch.db"));
+    options.UseSqlite($"Data Source={dbPath}"));
 
 // Configure Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -66,7 +73,12 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Skip HTTPS redirection in Railway (handled by Railway's proxy)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 app.UseRouting();

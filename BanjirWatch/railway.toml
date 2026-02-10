@@ -1,0 +1,19 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = ""
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+healthcheckPath = "/"
+healthcheckTimeout = 100
+
+[deploy.env]
+ASPNETCORE_ENVIRONMENT = "Production"
+DATABASE_PATH = "/data/BanjirWatch.db"
+
+# Add a volume to persist the SQLite database
+[[mounts]]
+source = "banjirwatch-data"
+destination = "/data"
