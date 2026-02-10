@@ -3,57 +3,60 @@
     ViewData["Title"] = "Profile";
 }
 
-<div class="profile-header">
-    <img src="@(Model.AvatarPath ?? "/images/default-avatar.svg")" alt="@Model.Username" class="profile-avatar">
-    <div class="profile-info">
-        <h2>@Model.Username</h2>
-        <p>@Model.Email</p>
-        <p class="text-muted">Joined @Model.CreatedAt.ToString("MMMM yyyy")</p>
-        <div class="profile-stats">
-            <div class="profile-stat">
-                <div class="profile-stat-value">@Model.Posts.Count</div>
-                <div class="profile-stat-label">Reports</div>
-            </div>
-            <div class="profile-stat">
-                <div class="profile-stat-value">@Model.Likes.Count</div>
-                <div class="profile-stat-label">Likes</div>
-            </div>
-            <div class="profile-stat">
-                <div class="profile-stat-value">@Model.Comments.Count</div>
-                <div class="profile-stat-label">Comments</div>
+<div class="main-container">
+    <div class="profile-header">
+        <img src="@(Model.AvatarPath ?? "/images/default-avatar.svg")" alt="@Model.Username" class="profile-avatar-large">
+        <div class="profile-info">
+            <h2>@Model.Username</h2>
+            <p>@Model.Email</p>
+            <p class="text-muted">Joined @Model.CreatedAt.ToString("MMMM yyyy")</p>
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <span class="profile-stat-value">@Model.Posts.Count</span>
+                    <span class="profile-stat-label">Reports</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-value">@Model.Likes.Count</span>
+                    <span class="profile-stat-label">Likes</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-value">@Model.Comments.Count</span>
+                    <span class="profile-stat-label">Comments</span>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h3>Update Avatar</h3>
-    </div>
-    <div class="card-body">
-        <form asp-action="UploadAvatar" method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <div class="file-input-wrapper">
-                    <input type="file" name="avatar" id="avatarInput" accept="image/*" onchange="previewImage(this, 'avatarPreview')" />
-                    <label for="avatarInput" class="file-input-label">
-                        <i class="fas fa-camera"></i>
-                        <span>Choose Photo</span>
-                    </label>
+    <div class="card" style="margin-bottom: 2rem;">
+        <div style="padding: 2rem; border-bottom: 2px solid var(--border-light);">
+            <h3 style="font-family: var(--font-heading); font-size: 1.25rem;">Update Avatar</h3>
+        </div>
+        <div style="padding: 2rem;">
+            <form asp-action="UploadAvatar" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <div class="file-input-wrapper">
+                        <input type="file" name="avatar" id="avatarInput" accept="image/*" onchange="previewImage(this, 'avatarPreview')" />
+                        <label for="avatarInput" class="file-input-label">
+                            <i class="fas fa-camera"></i>
+                            <span>Choose Photo</span>
+                        </label>
+                    </div>
+                    <img id="avatarPreview" style="display: none; max-width: 200px; margin-top: 1.5rem; border-radius: var(--card-radius); border: 3px solid var(--border-light);" />
                 </div>
-                <img id="avatarPreview" style="display: none; max-width: 200px; margin-top: 1rem; border-radius: var(--radius);" />
-            </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-upload"></i> Upload Avatar
-            </button>
-        </form>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload Avatar
+                </button>
+            </form>
+        </div>
     </div>
-</div>
 
-@if (Model.Posts.Any())
-{
-    <section class="mt-3">
-        <h3 class="mb-2">My Reports</h3>
-        <div class="posts-container">
+    @if (Model.Posts.Any())
+    {
+        <div class="section-header" style="padding: 0 0 1.5rem;">
+            <span class="section-icon">📝</span>
+            <h2>My Reports</h2>
+        </div>
+        <div class="cards-grid" style="padding: 0;">
             @foreach (var post in Model.Posts.OrderByDescending(p => p.CreatedAt))
             {
                 <article class="post-card">
@@ -61,7 +64,7 @@
                     {
                         <img src="@post.ImagePath" alt="" class="post-image">
                     }
-                    <div class="post-content">
+                    <div style="padding: 1.25rem;">
                         <p class="post-text">@post.Content</p>
                         @if (!string.IsNullOrEmpty(post.LocationName))
                         {
@@ -70,25 +73,24 @@
                                 <span>@post.LocationName</span>
                             </div>
                         }
-                        <div class="post-time">@post.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
-                    </div>
-                    <div class="post-actions">
-                        <span class="post-action">
-                            <i class="fas fa-heart"></i>
-                            <span>@post.Likes.Count</span>
-                        </span>
-                        <span class="post-action">
-                            <i class="fas fa-comment"></i>
-                            <span>@post.Comments.Count</span>
-                        </span>
-                        <form asp-controller="Posts" asp-action="Delete" asp-route-id="@post.Id" method="post" style="margin-left: auto;" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </form>
+                        <div class="post-actions" style="background: transparent; border: none; padding: 0;">
+                            <span class="post-action">
+                                <i class="fas fa-heart"></i>
+                                <span>@post.Likes.Count</span>
+                            </span>
+                            <span class="post-action">
+                                <i class="fas fa-comment"></i>
+                                <span>@post.Comments.Count</span>
+                            </span>
+                            <form asp-controller="Posts" asp-action="Delete" asp-route-id="@post.Id" method="post" style="margin-left: auto;" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                                <button type="submit" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </article>
             }
         </div>
-    </section>
-}
+    }
+</div>
