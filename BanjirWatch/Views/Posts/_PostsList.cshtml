@@ -1,0 +1,111 @@
+@model List<BanjirWatch.Models.ViewModels.PostViewModel>
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var currentUserId = isAuthenticated ? int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0") : 0;
+}
+
+@foreach (var post in Model)
+{
+    <article class="post-card" data-post-id="@post.Id">
+        <div class="post-header">
+            <div class="post-user">
+                <img src="@(post.AvatarPath ?? "/images/default-avatar.svg")" alt="@post.Username" class="post-avatar" onerror="this.src='/images/default-avatar.svg'">
+                <div>
+                    <a href="#" class="post-username">@post.Username</a>
+                    <div class="post-time time-ago" data-date="@post.CreatedAt.ToString("O")">@post.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
+                </div>
+            </div>
+            @if (post.Severity.HasValue)
+            {
+                <span class="severity-badge severity-@post.Severity.Value.ToString().ToLower()">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @post.Severity.Value
+                </span>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(post.ImagePath))
+        {
+            <img src="@post.ImagePath" alt="Flood report" class="post-image" loading="lazy">
+        }
+
+        <div class="post-actions">
+            @if (isAuthenticated)
+            {
+                <button class="post-action like-btn @(post.IsLikedByCurrentUser ? "liked" : "")" data-post-id="@post.Id" onclick="toggleLike(@post.Id)">
+                    <i class="@(post.IsLikedByCurrentUser ? "fas" : "far") fa-heart"></i>
+                    <span class="like-count">@post.LikesCount</span>
+                </button>
+            }
+            else
+            {
+                <a href="/Auth/Login?returnUrl=/Posts" class="post-action">
+                    <i class="far fa-heart"></i>
+                    <span>@post.LikesCount</span>
+                </a>
+            }
+            <button class="post-action" onclick="document.getElementById('comment-input-@post.Id').focus()">
+                <i class="far fa-comment"></i>
+                <span>@post.CommentsCount</span>
+            </button>
+            @if (!string.IsNullOrEmpty(post.LocationName))
+            {
+                <a href="/Map?lat=@post.Latitude&lng=@post.Longitude" class="post-action" title="View on map">
+                    <i class="fas fa-map-marker-alt"></i>
+                </a>
+            }
+        </div>
+
+        <div class="post-content">
+            <p class="post-text">
+                <a href="#" class="post-username" style="display: inline; margin-right: 0.5rem;">@post.Username</a>
+                @post.Content
+            </p>
+            @if (!string.IsNullOrEmpty(post.LocationName))
+            {
+                <div class="post-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>@post.LocationName</span>
+                </div>
+            }
+        </div>
+
+        @if (post.Comments.Any())
+        {
+            <div class="comments-section" id="comments-@post.Id">
+                @foreach (var comment in post.Comments.Take(3))
+                {
+                    <div class="comment" data-comment-id="@comment.Id">
+                        <img src="@(comment.AvatarPath ?? "/images/default-avatar.svg")" alt="" class="comment-avatar">
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-username">@comment.Username</span>
+                                <span class="comment-time time-ago" data-date="@comment.CreatedAt.ToString("O")">@comment.CreatedAt.ToString("MMM dd")</span>
+                            </div>
+                            <p class="comment-text">@comment.Content</p>
+                        </div>
+                    </div>
+                }
+                @if (post.Comments.Count > 3)
+                {
+                    <a href="/Posts/Details/@post.Id" class="text-muted" style="font-size: 0.875rem;">
+                        View all @post.Comments.Count comments
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="comments-section" id="comments-@post.Id" style="display: none;"></div>
+        }
+
+        @if (isAuthenticated)
+        {
+            <div class="comment-form">
+                <img src="@(User.FindFirst("AvatarPath")?.Value ?? "/images/default-avatar.svg")" alt="" class="comment-avatar">
+                <input type="text" id="comment-input-@post.Id" class="comment-input" placeholder="Add a comment..." onkeypress="if(event.key==='Enter') addComment(@post.Id, this.value)">
+                <button class="btn btn-primary btn-sm" onclick="addComment(@post.Id, document.getElementById('comment-input-@post.Id').value)">Post</button>
+            </div>
+        }
+    </article>
+}

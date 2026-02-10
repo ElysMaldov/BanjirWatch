@@ -1,0 +1,77 @@
+@model List<BanjirWatch.Models.ViewModels.PostViewModel>
+@{
+    ViewData["Title"] = "Feed";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+<div class="flex justify-between items-center mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0;">Flood Reports</h1>
+    @if (isAuthenticated)
+    {
+        <a href="/Posts/Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Report
+        </a>
+    }
+</div>
+
+<div class="posts-container" id="postsContainer">
+    @if (Model.Any())
+    {
+        <partial name="_PostsList" model="Model" />
+    }
+    else
+    {
+        <div class="card text-center" style="padding: 3rem;">
+            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+            <h3>No reports yet</h3>
+            <p class="text-muted">Be the first to report a flood in your area!</p>
+            @if (isAuthenticated)
+            {
+                <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
+            }
+            else
+            {
+                <a href="/Auth/Login?returnUrl=/Posts/Create" class="btn btn-primary">Login to Report</a>
+            }
+        </div>
+    }
+</div>
+
+@if (Model.Any() && ViewBag.HasMore)
+{
+    <div class="text-center mt-3" id="loadMoreContainer">
+        <button class="btn btn-outline" onclick="loadMorePosts()">Load More</button>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        let currentPage = @ViewBag.CurrentPage;
+        let hasMore = @(ViewBag.HasMore?.ToString().ToLower() ?? "false");
+
+        async function loadMorePosts() {
+            if (!hasMore) return;
+            
+            currentPage++;
+            const container = document.getElementById('postsContainer');
+            
+            try {
+                const response = await fetch(`/Posts/Index?page=${currentPage}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    if (html.trim()) {
+                        container.insertAdjacentHTML('beforeend', html);
+                    } else {
+                        hasMore = false;
+                        document.getElementById('loadMoreContainer')?.remove();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading more posts:', error);
+            }
+        }
+    </script>
+}

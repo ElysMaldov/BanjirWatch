@@ -1,0 +1,178 @@
+@model BanjirWatch.Models.ViewModels.PostViewModel
+@{
+    ViewData["Title"] = "Post Details";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <a href="/Posts" class="btn btn-outline btn-sm mb-2">
+        <i class="fas fa-arrow-left"></i> Back to Feed
+    </a>
+
+    <article class="post-card">
+        <div class="post-header">
+            <div class="post-user">
+                <img src="@(Model.AvatarPath ?? "/images/default-avatar.svg")" alt="@Model.Username" class="post-avatar">
+                <div>
+                    <a href="#" class="post-username">@Model.Username</a>
+                    <div class="post-time">@Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
+                </div>
+            </div>
+            @if (Model.Severity.HasValue)
+            {
+                <span class="severity-badge severity-@Model.Severity.Value.ToString().ToLower()">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @Model.Severity.Value
+                </span>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ImagePath))
+        {
+            <img src="@Model.ImagePath" alt="Flood report" class="post-image">
+        }
+
+        <div class="post-actions">
+            @if (isAuthenticated)
+            {
+                <button class="post-action like-btn @(Model.IsLikedByCurrentUser ? "liked" : "")" data-post-id="@Model.Id" onclick="toggleLike(@Model.Id)">
+                    <i class="@(Model.IsLikedByCurrentUser ? "fas" : "far") fa-heart"></i>
+                    <span class="like-count">@Model.LikesCount</span>
+                </button>
+            }
+            else
+            {
+                <a href="/Auth/Login?returnUrl=/Posts/Details/@Model.Id" class="post-action">
+                    <i class="far fa-heart"></i>
+                    <span>@Model.LikesCount</span>
+                </a>
+            }
+            <span class="post-action">
+                <i class="far fa-comment"></i>
+                <span>@Model.CommentsCount</span>
+            </span>
+            @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+            {
+                <a href="/Map?lat=@Model.Latitude&lng=@Model.Longitude" class="post-action" title="View on map">
+                    <i class="fas fa-map-marker-alt"></i>
+                </a>
+            }
+        </div>
+
+        <div class="post-content">
+            <p class="post-text">@Model.Content</p>
+            @if (!string.IsNullOrEmpty(Model.LocationName))
+            {
+                <div class="post-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>@Model.LocationName</span>
+                </div>
+            }
+            @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+            {
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    <i class="fas fa-globe"></i> @Model.Latitude.Value.ToString("F6"), @Model.Longitude.Value.ToString("F6")
+                </div>
+            }
+        </div>
+
+        <div class="comments-section">
+            <h4 style="margin-bottom: 1rem; font-size: 1rem;">Comments (@Model.CommentsCount)</h4>
+            
+            @if (Model.Comments.Any())
+            {
+                @foreach (var comment in Model.Comments)
+                {
+                    <div class="comment" data-comment-id="@comment.Id">
+                        <img src="@(comment.AvatarPath ?? "/images/default-avatar.svg")" alt="" class="comment-avatar">
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-username">@comment.Username</span>
+                                <span class="comment-time">@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                            <p class="comment-text">@comment.Content</p>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted" style="text-align: center; padding: 2rem;">
+                    <i class="far fa-comment-dots fa-2x mb-1"></i><br>
+                    No comments yet. Be the first to comment!
+                </p>
+            }
+
+            @if (isAuthenticated)
+            {
+                <div class="comment-form" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-light);">
+                    <img src="@(User.FindFirst("AvatarPath")?.Value ?? "/images/default-avatar.svg")" alt="" class="comment-avatar">
+                    <input type="text" id="comment-input" class="comment-input" placeholder="Add a comment..." onkeypress="if(event.key==='Enter') addComment(@Model.Id, this.value)" style="flex: 1;">
+                    <button class="btn btn-primary" onclick="addComment(@Model.Id, document.getElementById('comment-input').value)">Post</button>
+                </div>
+            }
+            else
+            {
+                <div style="text-align: center; padding: 1.5rem; border-top: 1px solid var(--border-light); margin-top: 1rem;">
+                    <a href="/Auth/Login?returnUrl=/Posts/Details/@Model.Id" class="btn btn-outline">Login to comment</a>
+                </div>
+            }
+        </div>
+    </article>
+</div>
+
+@section Scripts {
+    <script>
+        async function toggleLike(postId) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            try {
+                const response = await fetch(`/Posts/ToggleLike?postId=${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const likeBtn = document.querySelector('.like-btn');
+                    const icon = likeBtn.querySelector('i');
+                    const count = likeBtn.querySelector('.like-count');
+                    
+                    likeBtn.classList.toggle('liked', data.liked);
+                    icon.className = data.liked ? 'fas fa-heart' : 'far fa-heart';
+                    count.textContent = data.likesCount;
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+            }
+        }
+
+        async function addComment(postId, content) {
+            if (!content.trim()) return;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            try {
+                const formData = new FormData();
+                formData.append('postId', postId);
+                formData.append('content', content);
+
+                const response = await fetch('/Posts/AddComment', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    location.reload(); // Simple reload for details page
+                }
+            } catch (error) {
+                console.error('Error adding comment:', error);
+            }
+        }
+    </script>
+}

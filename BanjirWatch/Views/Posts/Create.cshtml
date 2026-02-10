@@ -1,0 +1,139 @@
+@model BanjirWatch.Models.ViewModels.CreatePostViewModel
+@{
+    ViewData["Title"] = "Create Report";
+}
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <h1 class="mb-3">Report a Flood</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form asp-action="Create" method="post" enctype="multipart/form-data" id="postForm">
+                <div asp-validation-summary="ModelOnly" class="form-error"></div>
+
+                <div class="form-group">
+                    <label asp-for="Image" class="form-label">Photo (optional)</label>
+                    <div class="file-input-wrapper">
+                        <input asp-for="Image" type="file" id="imageInput" accept="image/*" onchange="previewImage(this, 'imagePreview')" />
+                        <label for="imageInput" class="file-input-label" style="width: 100%; justify-content: center;">
+                            <i class="fas fa-camera"></i>
+                            <span id="fileLabel">Choose a photo</span>
+                        </label>
+                    </div>
+                    <img id="imagePreview" style="display: none; width: 100%; margin-top: 1rem; border-radius: var(--radius);" />
+                    <span asp-validation-for="Image" class="form-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Content" class="form-label">Description</label>
+                    <textarea asp-for="Content" class="form-control" placeholder="Describe the flood situation, water depth, affected areas, etc." rows="4"></textarea>
+                    <span asp-validation-for="Content" class="form-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Severity" class="form-label">Severity Level</label>
+                    <select asp-for="Severity" class="form-control">
+                        <option value="">Select severity...</option>
+                        <option value="1">Low - Minor flooding</option>
+                        <option value="2">Moderate - Some areas affected</option>
+                        <option value="3">High - Significant flooding</option>
+                        <option value="4">Severe - Dangerous, avoid area</option>
+                    </select>
+                    <span asp-validation-for="Severity" class="form-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="getLocation()">
+                        <i class="fas fa-location-arrow"></i> Get Current Location
+                    </button>
+                    <div id="locationStatus" class="form-text mt-1"></div>
+                </div>
+
+                <div class="form-group" style="display: none;">
+                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Latitude" class="form-control" id="Latitude" readonly />
+                </div>
+
+                <div class="form-group" style="display: none;">
+                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Longitude" class="form-control" id="Longitude" readonly />
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="LocationName" class="form-label">Location Name</label>
+                    <input asp-for="LocationName" class="form-control" id="LocationName" placeholder="e.g., Jl. Sudirman, Jakarta" />
+                    <span asp-validation-for="LocationName" class="form-error"></span>
+                </div>
+
+                <input type="hidden" asp-for="IsFloodReport" value="true" />
+
+                <div class="flex gap-2" style="display: flex; gap: 0.75rem;">
+                    <a href="/Posts" class="btn btn-secondary" style="flex: 1;">Cancel</a>
+                    <button type="submit" class="btn btn-primary" style="flex: 2;">
+                        <i class="fas fa-paper-plane"></i> Submit Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Update file label when file is selected
+        document.getElementById('imageInput')?.addEventListener('change', function() {
+            const label = document.getElementById('fileLabel');
+            if (this.files && this.files[0]) {
+                label.textContent = this.files[0].name;
+            } else {
+                label.textContent = 'Choose a photo';
+            }
+        });
+
+        // Get current location
+        async function getLocation() {
+            const status = document.getElementById('locationStatus');
+            
+            if (!navigator.geolocation) {
+                status.textContent = 'Geolocation is not supported by your browser';
+                status.style.color = 'var(--danger-color)';
+                return;
+            }
+
+            status.textContent = 'Getting location...';
+            status.style.color = 'var(--primary-color)';
+
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    });
+                });
+
+                document.getElementById('Latitude').value = position.coords.latitude.toFixed(6);
+                document.getElementById('Longitude').value = position.coords.longitude.toFixed(6);
+
+                // Try to get location name
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`);
+                    const data = await response.json();
+                    if (data.display_name) {
+                        document.getElementById('LocationName').value = data.display_name.split(',')[0];
+                    }
+                } catch (e) {
+                    console.warn('Could not get location name');
+                }
+
+                status.textContent = 'Location captured successfully!';
+                status.style.color = 'var(--success-color)';
+            } catch (error) {
+                status.textContent = 'Could not get location: ' + error.message;
+                status.style.color = 'var(--danger-color)';
+            }
+        }
+    </script>
+}
