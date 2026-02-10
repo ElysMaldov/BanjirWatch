@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BanjirWatch")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e303cb0e9ee879a5d096757cb5815ab94fcf71d2")]
 [assembly: System.Reflection.AssemblyProductAttribute("BanjirWatch")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BanjirWatch")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
