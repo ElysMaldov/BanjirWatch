@@ -45,4 +45,5 @@ jobs:
         working-directory: ./BanjirWatch
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service banjirwatch --detach
+          RAILWAY_PROJECT_ID: 54a11aea-2f4e-4759-a9ce-e92bbc0df107
+        run: railway up --detach
