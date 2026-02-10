@@ -1,3 +1,5 @@
+using BanjirWatch.Services.Interfaces;
+
 namespace BanjirWatch.Services;
 
 /// <summary>
@@ -31,9 +33,9 @@ public class FloodDataBackgroundService : BackgroundService
                 _logger.LogInformation("Fetching flood data at: {Time}", DateTime.UtcNow);
 
                 using var scope = _serviceProvider.CreateScope();
-                var weatherService = scope.ServiceProvider.GetRequiredService<WeatherService>();
+                var floodDataService = scope.ServiceProvider.GetRequiredService<IFloodDataService>();
 
-                await weatherService.FetchAndStoreFloodDataAsync();
+                await floodDataService.FetchAndStoreFloodDataAsync();
 
                 _logger.LogInformation("Flood data fetch completed");
             }

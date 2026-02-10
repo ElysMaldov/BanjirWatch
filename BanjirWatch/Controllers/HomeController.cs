@@ -1,51 +1,42 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using BanjirWatch.Data;
 using BanjirWatch.Models;
 using BanjirWatch.Models.ViewModels;
+using BanjirWatch.Services.Interfaces;
 
 namespace BanjirWatch.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IPostService _postService;
+    private readonly IFloodDataService _floodDataService;
+    private readonly IUserService _userService;
     private readonly ILogger<HomeController> _logger;
 
-    public HomeController(ApplicationDbContext context, ILogger<HomeController> logger)
+    public HomeController(
+        IPostService postService,
+        IFloodDataService floodDataService,
+        IUserService userService,
+        ILogger<HomeController> logger)
     {
-        _context = context;
+        _postService = postService;
+        _floodDataService = floodDataService;
+        _userService = userService;
         _logger = logger;
     }
 
     public async Task<IActionResult> Index()
     {
-        // Get recent flood reports
-        var recentReports = await _context.Posts
-            .Include(p => p.User)
-            .Where(p => p.IsFloodReport)
-            .OrderByDescending(p => p.CreatedAt)
-            .Take(6)
-            .ToListAsync();
+        // Get recent flood reports from service
+        var recentReports = await _postService.GetRecentFloodReportsAsync(6);
 
-        // Get statistics
+        // Get statistics from services
         var stats = new HomeViewModel
         {
-            TotalReports = await _context.Posts.CountAsync(p => p.IsFloodReport),
-            ActiveAlerts = await _context.FloodData.CountAsync(f => f.ExpiresAt > DateTime.UtcNow),
-            TotalUsers = await _context.Users.CountAsync(),
-            RecentPosts = recentReports.Select(p => new PostViewModel
-            {
-                Id = p.Id,
-                Content = p.Content.Length > 150 ? p.Content[..150] + "..." : p.Content,
-                ImagePath = p.ImagePath,
-                LocationName = p.LocationName,
-                CreatedAt = p.CreatedAt,
-                Username = p.User.Username,
-                AvatarPath = p.User.AvatarPath,
-                LikesCount = p.Likes.Count,
-                CommentsCount = p.Comments.Count
-            }).ToList()
+            TotalReports = await _postService.GetTotalPostsCountAsync(),
+            ActiveAlerts = await _floodDataService.GetActiveAlertsCountAsync(),
+            TotalUsers = await _userService.GetTotalUsersCountAsync(),
+            RecentPosts = recentReports
         };
 
         return View(stats);

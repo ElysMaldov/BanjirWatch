@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using BanjirWatch.Data;
+using BanjirWatch.Repositories;
+using BanjirWatch.Repositories.Interfaces;
 using BanjirWatch.Services;
+using BanjirWatch.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,11 +30,22 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // Configure Authorization
 builder.Services.AddAuthorization();
 
-// Register HttpClient
-builder.Services.AddHttpClient<WeatherService>();
+// Register HttpClient for Weather API
+builder.Services.AddHttpClient<IWeatherApiService, WeatherApiService>();
 
-// Register WeatherService
-builder.Services.AddScoped<WeatherService>();
+// Register Repositories
+builder.Services.AddScoped<IFloodDataRepository, FloodDataRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ILikeRepository, LikeRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+
+// Register Services
+builder.Services.AddScoped<IWeatherApiService, WeatherApiService>();
+builder.Services.AddScoped<IFloodDataService, FloodDataService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMapService, MapService>();
 
 // Register Background Service for flood data fetching
 builder.Services.AddHostedService<FloodDataBackgroundService>();

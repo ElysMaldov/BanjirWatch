@@ -1,22 +1,24 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using BanjirWatch.Data;
-using BanjirWatch.Models;
 using BanjirWatch.Models.ViewModels;
+using BanjirWatch.Services.Interfaces;
+using BanjirWatch.Exceptions;
 
 namespace BanjirWatch.Controllers;
 
 public class PostsController : Controller
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IPostService _postService;
     private readonly ILogger<PostsController> _logger;
     private readonly IWebHostEnvironment _environment;
 
-    public PostsController(ApplicationDbContext context, ILogger<PostsController> logger, IWebHostEnvironment environment)
+    public PostsController(
+        IPostService postService, 
+        ILogger<PostsController> logger, 
+        IWebHostEnvironment environment)
     {
-        _context = context;
+        _postService = postService;
         _logger = logger;
         _environment = environment;
     }
@@ -26,46 +28,8 @@ public class PostsController : Controller
     {
         var currentUserId = GetCurrentUserId();
 
-        var postsQuery = _context.Posts
-            .Include(p => p.User)
-            .Include(p => p.Likes)
-            .Include(p => p.Comments)
-            .ThenInclude(c => c.User)
-            .OrderByDescending(p => p.CreatedAt);
-
-        var totalPosts = await postsQuery.CountAsync();
-        var posts = await postsQuery
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        var postViewModels = posts.Select(p => new PostViewModel
-        {
-            Id = p.Id,
-            Content = p.Content,
-            ImagePath = p.ImagePath,
-            Latitude = p.Latitude,
-            Longitude = p.Longitude,
-            LocationName = p.LocationName,
-            IsFloodReport = p.IsFloodReport,
-            Severity = p.Severity,
-            CreatedAt = p.CreatedAt,
-            UserId = p.UserId,
-            Username = p.User.Username,
-            AvatarPath = p.User.AvatarPath,
-            LikesCount = p.Likes.Count,
-            CommentsCount = p.Comments.Count,
-            IsLikedByCurrentUser = currentUserId.HasValue && p.Likes.Any(l => l.UserId == currentUserId.Value),
-            Comments = p.Comments.OrderBy(c => c.CreatedAt).Select(c => new CommentViewModel
-            {
-                Id = c.Id,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                UserId = c.UserId,
-                Username = c.User.Username,
-                AvatarPath = c.User.AvatarPath
-            }).ToList()
-        }).ToList();
+        var posts = await _postService.GetPostsAsync(page, pageSize, currentUserId);
+        var totalPosts = await _postService.GetTotalPostsCountAsync();
 
         ViewBag.CurrentPage = page;
         ViewBag.TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize);
@@ -73,10 +37,10 @@ public class PostsController : Controller
 
         if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {
-            return PartialView("_PostsList", postViewModels);
+            return PartialView("_PostsList", posts);
         }
 
-        return View(postViewModels);
+        return View(posts);
     }
 
     [Authorize]
@@ -134,7 +98,7 @@ public class PostsController : Controller
             imagePath = $"/uploads/posts/{fileName}";
         }
 
-        var post = new Post
+        var request = new CreatePostRequest
         {
             UserId = userId.Value,
             Content = model.Content,
@@ -143,14 +107,12 @@ public class PostsController : Controller
             Longitude = model.Longitude,
             LocationName = model.LocationName,
             IsFloodReport = model.IsFloodReport,
-            Severity = model.Severity,
-            CreatedAt = DateTime.UtcNow
+            Severity = model.Severity
         };
 
-        _context.Posts.Add(post);
-        await _context.SaveChangesAsync();
+        await _postService.CreatePostAsync(request);
 
-        _logger.LogInformation("User {UserId} created post {PostId}", userId.Value, post.Id);
+        _logger.LogInformation("User {UserId} created a post", userId.Value);
 
         TempData["SuccessMessage"] = "Post created successfully!";
         return RedirectToAction("Index");
@@ -160,48 +122,14 @@ public class PostsController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var currentUserId = GetCurrentUserId();
-
-        var post = await _context.Posts
-            .Include(p => p.User)
-            .Include(p => p.Likes)
-            .Include(p => p.Comments)
-            .ThenInclude(c => c.User)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var post = await _postService.GetPostByIdAsync(id, currentUserId);
 
         if (post == null)
         {
             return NotFound();
         }
 
-        var viewModel = new PostViewModel
-        {
-            Id = post.Id,
-            Content = post.Content,
-            ImagePath = post.ImagePath,
-            Latitude = post.Latitude,
-            Longitude = post.Longitude,
-            LocationName = post.LocationName,
-            IsFloodReport = post.IsFloodReport,
-            Severity = post.Severity,
-            CreatedAt = post.CreatedAt,
-            UserId = post.UserId,
-            Username = post.User.Username,
-            AvatarPath = post.User.AvatarPath,
-            LikesCount = post.Likes.Count,
-            CommentsCount = post.Comments.Count,
-            IsLikedByCurrentUser = currentUserId.HasValue && post.Likes.Any(l => l.UserId == currentUserId.Value),
-            Comments = post.Comments.OrderBy(c => c.CreatedAt).Select(c => new CommentViewModel
-            {
-                Id = c.Id,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                UserId = c.UserId,
-                Username = c.User.Username,
-                AvatarPath = c.User.AvatarPath
-            }).ToList()
-        };
-
-        return View(viewModel);
+        return View(post);
     }
 
     [Authorize]
@@ -215,34 +143,21 @@ public class PostsController : Controller
             return Unauthorized();
         }
 
-        var post = await _context.Posts.FindAsync(id);
-        if (post == null)
+        try
+        {
+            await _postService.DeletePostAsync(id, userId.Value);
+            _logger.LogInformation("User {UserId} deleted post {PostId}", userId.Value, id);
+            TempData["SuccessMessage"] = "Post deleted successfully";
+        }
+        catch (NotFoundException)
         {
             return NotFound();
         }
-
-        // Only allow deletion by post owner or admin (simplified - just owner for now)
-        if (post.UserId != userId.Value)
+        catch (UnauthorizedException)
         {
             return Forbid();
         }
 
-        // Delete associated image
-        if (!string.IsNullOrEmpty(post.ImagePath))
-        {
-            var imagePath = Path.Combine(_environment.WebRootPath, post.ImagePath.TrimStart('/'));
-            if (System.IO.File.Exists(imagePath))
-            {
-                System.IO.File.Delete(imagePath);
-            }
-        }
-
-        _context.Posts.Remove(post);
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("User {UserId} deleted post {PostId}", userId.Value, id);
-
-        TempData["SuccessMessage"] = "Post deleted successfully";
         return RedirectToAction("Index");
     }
 
@@ -256,27 +171,8 @@ public class PostsController : Controller
             return Unauthorized();
         }
 
-        var existingLike = await _context.Likes
-            .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId.Value);
-
-        if (existingLike != null)
-        {
-            _context.Likes.Remove(existingLike);
-            await _context.SaveChangesAsync();
-            return Json(new { liked = false, likesCount = await _context.Likes.CountAsync(l => l.PostId == postId) });
-        }
-        else
-        {
-            var like = new Like
-            {
-                PostId = postId,
-                UserId = userId.Value,
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.Likes.Add(like);
-            await _context.SaveChangesAsync();
-            return Json(new { liked = true, likesCount = await _context.Likes.CountAsync(l => l.PostId == postId) });
-        }
+        var result = await _postService.ToggleLikeAsync(postId, userId.Value);
+        return Json(new { liked = result.liked, likesCount = result.likesCount });
     }
 
     [Authorize]
@@ -294,35 +190,23 @@ public class PostsController : Controller
             return BadRequest("Content is required");
         }
 
-        var post = await _context.Posts.FindAsync(postId);
-        if (post == null)
+        try
         {
-            return NotFound();
+            var comment = await _postService.AddCommentAsync(postId, userId.Value, content);
+            return Json(new
+            {
+                id = comment.Id,
+                content = comment.Content,
+                createdAt = comment.CreatedAt.ToString("MMM dd, yyyy HH:mm"),
+                userId = comment.UserId,
+                username = comment.Username,
+                avatarPath = comment.AvatarPath
+            });
         }
-
-        var comment = new Comment
+        catch (InvalidOperationException ex)
         {
-            PostId = postId,
-            UserId = userId.Value,
-            Content = content.Trim(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Comments.Add(comment);
-        await _context.SaveChangesAsync();
-
-        // Load user data for response
-        await _context.Entry(comment).Reference(c => c.User).LoadAsync();
-
-        return Json(new
-        {
-            id = comment.Id,
-            content = comment.Content,
-            createdAt = comment.CreatedAt.ToString("MMM dd, yyyy HH:mm"),
-            userId = comment.UserId,
-            username = comment.User.Username,
-            avatarPath = comment.User.AvatarPath
-        });
+            return BadRequest(ex.Message);
+        }
     }
 
     [Authorize]
@@ -335,21 +219,19 @@ public class PostsController : Controller
             return Unauthorized();
         }
 
-        var comment = await _context.Comments.FindAsync(commentId);
-        if (comment == null)
+        try
+        {
+            await _postService.DeleteCommentAsync(commentId, userId.Value);
+            return Ok();
+        }
+        catch (NotFoundException)
         {
             return NotFound();
         }
-
-        if (comment.UserId != userId.Value)
+        catch (UnauthorizedException)
         {
             return Forbid();
         }
-
-        _context.Comments.Remove(comment);
-        await _context.SaveChangesAsync();
-
-        return Ok();
     }
 
     private int? GetCurrentUserId()
