@@ -4,11 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - BanjirWatch</title>
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/minimalist.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/ubay-theme.css" asp-append-version="true" />
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Font Awesome for icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -18,7 +17,7 @@
             <div class="nav-container">
                 <a class="nav-brand" href="/">
                     <i class="fas fa-water"></i>
-                    <span>BanjirWatch</span>
+                    BanjirWatch
                 </a>
                 <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
                     <span></span>
@@ -31,20 +30,20 @@
                     <li><a class="nav-link" href="/Map">Map</a></li>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <li><a class="nav-link" href="/Posts/Create">
-                            <i class="fas fa-plus-circle"></i> Report
+                        <li><a class="nav-link btn-nav" href="/Posts/Create">
+                            <i class="fas fa-plus"></i> Report
                         </a></li>
                         <li class="nav-dropdown">
-                            <button class="nav-link dropdown-toggle">
+                            <button class="dropdown-toggle">
                                 <img src="@(User.FindFirst("AvatarPath")?.Value ?? "/images/default-avatar.svg")" 
                                      alt="Avatar" class="nav-avatar" 
                                      onerror="this.src='/images/default-avatar.svg'" />
                                 <span>@User.Identity.Name</span>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a href="/Auth/Profile">Profile</a></li>
+                                <li><a href="/Auth/Profile">My Profile</a></li>
                                 <li>
-                                    <form asp-controller="Auth" asp-action="Logout" method="post" style="display:inline;">
+                                    <form asp-controller="Auth" asp-action="Logout" method="post">
                                         <button type="submit" class="dropdown-item">Logout</button>
                                     </form>
                                 </li>
@@ -53,35 +52,52 @@
                     }
                     else
                     {
-                        <li><a class="nav-link nav-link-primary" href="/Auth/Login">Login</a></li>
-                        <li><a class="nav-link nav-link-primary" href="/Auth/Register">Register</a></li>
+                        <li><a class="nav-link" href="/Auth/Login">Login</a></li>
+                        <li><a class="nav-link btn-nav" href="/Auth/Register">Get Started</a></li>
                     }
                 </ul>
             </div>
         </nav>
     </header>
 
-    <main class="main-container">
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade-in">
-                @TempData["SuccessMessage"]
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="main-container" style="padding-bottom: 0;">
+            <div class="alert alert-success fade-in">
+                <span><i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]</span>
                 <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
             </div>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-error alert-dismissible fade-in">
-                @TempData["ErrorMessage"]
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="main-container" style="padding-bottom: 0;">
+            <div class="alert alert-error fade-in">
+                <span><i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]</span>
                 <button type="button" class="alert-close" onclick="this.parentElement.remove()">&times;</button>
             </div>
-        }
+        </div>
+    }
+
+    <main>
         @RenderBody()
     </main>
 
+    <!-- Newsletter Section -->
+    <section class="newsletter-section">
+        <div class="newsletter-container">
+            <h2>Stay Alert, Stay Safe</h2>
+            <p>Get real-time flood alerts and weather updates for your area. Join our community today!</p>
+            <div class="newsletter-form">
+                <input type="email" placeholder="Enter your email address" />
+                <button type="button">Subscribe</button>
+            </div>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="container">
-            <p>&copy; @DateTime.Now.Year BanjirWatch - Community Flood Reporting</p>
+            <p>&copy; @DateTime.Now.Year BanjirWatch - Community Flood Reporting Platform</p>
         </div>
     </footer>
 
