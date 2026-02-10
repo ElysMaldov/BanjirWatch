@@ -4,45 +4,50 @@
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
-<div class="flex justify-between items-center mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h1 style="margin: 0;">Flood Reports</h1>
-    @if (isAuthenticated)
-    {
-        <a href="/Posts/Create" class="btn btn-primary">
-            <i class="fas fa-plus"></i> New Report
-        </a>
-    }
-</div>
+<div class="main-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div class="section-header" style="padding: 0;">
+            <span class="section-icon">📢</span>
+            <h2>Flood Reports</h2>
+        </div>
+        @if (isAuthenticated)
+        {
+            <a href="/Posts/Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Report
+            </a>
+        }
+    </div>
 
-<div class="posts-container" id="postsContainer">
-    @if (Model.Any())
+    <div class="cards-grid" id="postsContainer" style="padding: 0;">
+        @if (Model.Any())
+        {
+            <partial name="_PostsList" model="Model" />
+        }
+        else
+        {
+            <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+                <i class="fas fa-inbox" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.5rem;">No reports yet</h3>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Be the first to report a flood in your area!</p>
+                @if (isAuthenticated)
+                {
+                    <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
+                }
+                else
+                {
+                    <a href="/Auth/Login?returnUrl=/Posts/Create" class="btn btn-primary">Login to Report</a>
+                }
+            </div>
+        }
+    </div>
+
+    @if (Model.Any() && ViewBag.HasMore)
     {
-        <partial name="_PostsList" model="Model" />
-    }
-    else
-    {
-        <div class="card text-center" style="padding: 3rem;">
-            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
-            <h3>No reports yet</h3>
-            <p class="text-muted">Be the first to report a flood in your area!</p>
-            @if (isAuthenticated)
-            {
-                <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
-            }
-            else
-            {
-                <a href="/Auth/Login?returnUrl=/Posts/Create" class="btn btn-primary">Login to Report</a>
-            }
+        <div class="text-center mt-4" id="loadMoreContainer">
+            <button class="btn btn-outline" onclick="loadMorePosts()">Load More</button>
         </div>
     }
 </div>
-
-@if (Model.Any() && ViewBag.HasMore)
-{
-    <div class="text-center mt-3" id="loadMoreContainer">
-        <button class="btn btn-outline" onclick="loadMorePosts()">Load More</button>
-    </div>
-}
 
 @section Scripts {
     <script>
