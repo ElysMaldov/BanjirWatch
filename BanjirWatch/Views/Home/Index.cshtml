@@ -1,0 +1,119 @@
+@model BanjirWatch.Controllers.HomeViewModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="hero">
+    <h1>BanjirWatch</h1>
+    <p>Community-powered flood reporting and real-time weather monitoring. Stay informed, stay safe.</p>
+    <div class="flex gap-2 justify-center" style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="/Posts/Create" class="btn btn-primary btn-lg">
+            <i class="fas fa-camera"></i> Report Flood
+        </a>
+        <a href="/Map" class="btn btn-outline btn-lg">
+            <i class="fas fa-map"></i> View Map
+        </a>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">@Model.TotalReports</div>
+        <div class="stat-label">Flood Reports</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">@Model.ActiveAlerts</div>
+        <div class="stat-label">Active Alerts</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">@Model.TotalUsers</div>
+        <div class="stat-label">Community Members</div>
+    </div>
+</section>
+
+<section class="mb-4">
+    <h2 class="mb-3">Recent Reports</h2>
+    @if (Model.RecentPosts.Any())
+    {
+        <div class="features-grid">
+            @foreach (var post in Model.RecentPosts)
+            {
+                <article class="card">
+                    @if (!string.IsNullOrEmpty(post.ImagePath))
+                    {
+                        <img src="@post.ImagePath" alt="Flood report" class="card-image">
+                    }
+                    else
+                    {
+                        <div class="card-image" style="background: linear-gradient(135deg, #e0f2fe, #bae6fd); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-water fa-3x text-primary"></i>
+                        </div>
+                    }
+                    <div class="card-body">
+                        <div class="post-user mb-2">
+                            <img src="@(post.AvatarPath ?? "/images/default-avatar.svg")" alt="" class="post-avatar">
+                            <div>
+                                <div class="post-username">@post.Username</div>
+                                <div class="post-time time-ago" data-date="@post.CreatedAt.ToString("O")">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
+                            </div>
+                        </div>
+                        <p class="post-text">@post.Content</p>
+                        @if (!string.IsNullOrEmpty(post.LocationName))
+                        {
+                            <div class="post-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>@post.LocationName</span>
+                            </div>
+                        }
+                        <div class="post-actions" style="padding: 0; border: none;">
+                            <span class="post-action">
+                                <i class="far fa-heart"></i>
+                                <span>@post.LikesCount</span>
+                            </span>
+                            <span class="post-action">
+                                <i class="far fa-comment"></i>
+                                <span>@post.CommentsCount</span>
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+        <div class="text-center mt-3">
+            <a href="/Posts" class="btn btn-primary">View All Reports</a>
+        </div>
+    }
+    else
+    {
+        <div class="card text-center" style="padding: 3rem;">
+            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+            <h3>No reports yet</h3>
+            <p class="text-muted">Be the first to report a flood in your area!</p>
+            <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
+        </div>
+    }
+</section>
+
+<section class="features-grid">
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-camera"></i>
+        </div>
+        <h3>Report Floods</h3>
+        <p>Share photos and information about flooding in your area to help others stay safe.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-map-marked-alt"></i>
+        </div>
+        <h3>Interactive Map</h3>
+        <p>View real-time flood data and community reports on an interactive map.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon">
+            <i class="fas fa-cloud-rain"></i>
+        </div>
+        <h3>Weather Data</h3>
+        <p>Automatic weather monitoring and flood risk alerts from reliable sources.</p>
+    </div>
+</section>
