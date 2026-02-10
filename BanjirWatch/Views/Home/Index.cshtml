@@ -3,61 +3,153 @@
     ViewData["Title"] = "Home";
 }
 
+<!-- Hero Section -->
 <section class="hero">
-    <h1>BanjirWatch</h1>
-    <p>Community-powered flood reporting and real-time weather monitoring. Stay informed, stay safe.</p>
-    <div class="flex gap-2 justify-center" style="display: flex; gap: 1rem; justify-content: center;">
-        <a href="/Posts/Create" class="btn btn-primary btn-lg">
-            <i class="fas fa-camera"></i> Report Flood
-        </a>
-        <a href="/Map" class="btn btn-outline btn-lg">
-            <i class="fas fa-map"></i> View Map
-        </a>
+    <div class="hero-content">
+        <h1>Protect your community from <span>flood disasters</span></h1>
+        <p class="hero-description">
+            Join thousands of community members reporting floods in real-time. 
+            Get instant alerts, view interactive maps, and keep your loved ones safe.
+        </p>
+        <div class="hero-buttons">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="/Posts/Create" class="btn btn-primary btn-lg">
+                    <i class="fas fa-camera"></i> Report Flood
+                </a>
+            }
+            else
+            {
+                <a href="/Auth/Register" class="btn btn-primary btn-lg">
+                    Get Started
+                </a>
+            }
+            <a href="/Map" class="btn btn-secondary btn-lg">
+                <i class="fas fa-map-marked-alt"></i> View Map
+            </a>
+        </div>
+        
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-value">@Model.TotalReports</span>
+                <span class="stat-label">Flood Reports</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">@Model.ActiveAlerts</span>
+                <span class="stat-label">Active Alerts</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">@Model.TotalUsers</span>
+                <span class="stat-label">Community Members</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <!-- Decorative Illustration -->
+        <div style="position: relative; height: 400px; display: flex; align-items: center; justify-content: center;">
+            <div style="
+                width: 300px; 
+                height: 300px; 
+                background: linear-gradient(135deg, var(--primary-coral), var(--primary-coral-light));
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 20px 60px rgba(255, 107, 107, 0.3);
+                border: 4px solid var(--text-dark);
+            ">
+                <i class="fas fa-water" style="font-size: 120px; color: white;"></i>
+            </div>
+            <!-- Floating elements -->
+            <div style="
+                position: absolute;
+                top: 20px;
+                right: 40px;
+                width: 80px;
+                height: 80px;
+                background: var(--accent-yellow);
+                border-radius: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid var(--text-dark);
+                transform: rotate(15deg);
+            ">
+                <i class="fas fa-cloud-rain" style="font-size: 30px; color: var(--text-dark);"></i>
+            </div>
+            <div style="
+                position: absolute;
+                bottom: 40px;
+                left: 20px;
+                width: 60px;
+                height: 60px;
+                background: var(--accent-green);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid var(--text-dark);
+            ">
+                <i class="fas fa-shield-alt" style="font-size: 24px; color: white;"></i>
+            </div>
+            <div style="
+                position: absolute;
+                top: 60px;
+                left: 40px;
+                padding: 1rem 1.5rem;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                border: 3px solid var(--text-dark);
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            ">
+                <i class="fas fa-map-marker-alt" style="color: var(--primary-coral); font-size: 1.5rem;"></i>
+                <div>
+                    <div style="font-weight: 700; color: var(--text-dark);">Live Map</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Real-time updates</div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-value">@Model.TotalReports</div>
-        <div class="stat-label">Flood Reports</div>
+<!-- Recent Reports Section -->
+<section style="padding: 4rem 0;">
+    <div class="section-header">
+        <span class="section-icon">📢</span>
+        <h2>Recent Reports</h2>
     </div>
-    <div class="stat-card">
-        <div class="stat-value">@Model.ActiveAlerts</div>
-        <div class="stat-label">Active Alerts</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">@Model.TotalUsers</div>
-        <div class="stat-label">Community Members</div>
-    </div>
-</section>
-
-<section class="mb-4">
-    <h2 class="mb-3">Recent Reports</h2>
+    
     @if (Model.RecentPosts.Any())
     {
-        <div class="features-grid">
+        <div class="cards-grid">
             @foreach (var post in Model.RecentPosts)
             {
-                <article class="card">
+                <article class="post-card">
                     @if (!string.IsNullOrEmpty(post.ImagePath))
                     {
-                        <img src="@post.ImagePath" alt="Flood report" class="card-image">
+                        <img src="@post.ImagePath" alt="Flood report" class="post-image">
                     }
                     else
                     {
-                        <div class="card-image" style="background: linear-gradient(135deg, #e0f2fe, #bae6fd); display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-water fa-3x text-primary"></i>
+                        <div class="post-image" style="background: linear-gradient(135deg, #FFE4C4, #FFD4A8); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-water" style="font-size: 4rem; color: var(--primary-coral); opacity: 0.5;"></i>
                         </div>
                     }
-                    <div class="card-body">
-                        <div class="post-user mb-2">
+                    <div class="post-header" style="border-bottom: none; padding-bottom: 0;">
+                        <div class="post-user">
                             <img src="@(post.AvatarPath ?? "/images/default-avatar.svg")" alt="" class="post-avatar">
                             <div>
                                 <div class="post-username">@post.Username</div>
-                                <div class="post-time time-ago" data-date="@post.CreatedAt.ToString("O")">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
+                                <div class="post-time">@post.CreatedAt.ToString("MMM dd, yyyy")</div>
                             </div>
                         </div>
-                        <p class="post-text">@post.Content</p>
+                    </div>
+                    <div style="padding: 0 1.25rem 1.25rem;">
+                        <p class="post-text">@(post.Content.Length > 100 ? post.Content[..100] + "..." : post.Content)</p>
                         @if (!string.IsNullOrEmpty(post.LocationName))
                         {
                             <div class="post-location">
@@ -65,13 +157,13 @@
                                 <span>@post.LocationName</span>
                             </div>
                         }
-                        <div class="post-actions" style="padding: 0; border: none;">
+                        <div class="post-actions" style="background: transparent; border: none; padding: 0;">
                             <span class="post-action">
-                                <i class="far fa-heart"></i>
+                                <i class="fas fa-heart"></i>
                                 <span>@post.LikesCount</span>
                             </span>
                             <span class="post-action">
-                                <i class="far fa-comment"></i>
+                                <i class="fas fa-comment"></i>
                                 <span>@post.CommentsCount</span>
                             </span>
                         </div>
@@ -79,41 +171,57 @@
                 </article>
             }
         </div>
-        <div class="text-center mt-3">
-            <a href="/Posts" class="btn btn-primary">View All Reports</a>
+        <div class="text-center mt-4">
+            <a href="/Posts" class="btn btn-outline btn-lg">View All Reports</a>
         </div>
     }
     else
     {
-        <div class="card text-center" style="padding: 3rem;">
-            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
-            <h3>No reports yet</h3>
-            <p class="text-muted">Be the first to report a flood in your area!</p>
-            <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
+        <div class="cards-grid">
+            <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+                <i class="fas fa-inbox" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.5rem;">No reports yet</h3>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Be the first to report a flood in your area!</p>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a href="/Posts/Create" class="btn btn-primary">Create Report</a>
+                }
+                else
+                {
+                    <a href="/Auth/Login" class="btn btn-primary">Login to Report</a>
+                }
+            </div>
         </div>
     }
 </section>
 
-<section class="features-grid">
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-camera"></i>
-        </div>
-        <h3>Report Floods</h3>
-        <p>Share photos and information about flooding in your area to help others stay safe.</p>
+<!-- Features Section -->
+<section style="padding: 4rem 0; background-color: var(--bg-warm);">
+    <div class="section-header">
+        <span class="section-icon">🌟</span>
+        <h2>Why BanjirWatch?</h2>
     </div>
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-map-marked-alt"></i>
+    <div class="cards-grid">
+        <div class="card" style="text-align: center; padding: 2.5rem;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary-coral), var(--primary-coral-light)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; border: 3px solid var(--text-dark);">
+                <i class="fas fa-camera" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <h3 class="card-title">Easy Reporting</h3>
+            <p class="card-text">Share photos and location data instantly. Your reports help others stay safe.</p>
         </div>
-        <h3>Interactive Map</h3>
-        <p>View real-time flood data and community reports on an interactive map.</p>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-cloud-rain"></i>
+        <div class="card" style="text-align: center; padding: 2.5rem;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--accent-yellow), #FFB347); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; border: 3px solid var(--text-dark);">
+                <i class="fas fa-map-marked-alt" style="font-size: 2rem; color: var(--text-dark);"></i>
+            </div>
+            <h3 class="card-title">Interactive Map</h3>
+            <p class="card-text">View real-time flood data on an interactive map with severity indicators.</p>
         </div>
-        <h3>Weather Data</h3>
-        <p>Automatic weather monitoring and flood risk alerts from reliable sources.</p>
+        <div class="card" style="text-align: center; padding: 2.5rem;">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--accent-green), #5CB85C); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; border: 3px solid var(--text-dark);">
+                <i class="fas fa-bell" style="font-size: 2rem; color: white;"></i>
+            </div>
+            <h3 class="card-title">Weather Alerts</h3>
+            <p class="card-text">Get automatic flood risk alerts based on real-time weather data.</p>
+        </div>
     </div>
 </section>
