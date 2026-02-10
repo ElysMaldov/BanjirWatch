@@ -1,0 +1,328 @@
+@model BanjirWatch.Models.ViewModels.MapViewModel
+@{
+    ViewData["Title"] = "Map";
+}
+
+<style>
+    .map-page-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        min-height: 500px;
+    }
+    
+    .map-toolbar {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background-color: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .map-search-box {
+        display: flex;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .map-search-box input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        font-size: 0.875rem;
+    }
+    
+    .map-legend-inline {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .legend-item-inline {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .legend-dot.severe { background-color: #ef4444; }
+    .legend-dot.high { background-color: #f97316; }
+    .legend-dot.moderate { background-color: #f59e0b; }
+    .legend-dot.low { background-color: #22c55e; }
+    .legend-dot.user { background-color: #0ea5e9; }
+    .legend-dot.current { background-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
+</style>
+
+<h1 class="mb-2">Flood Map</h1>
+
+<div class="map-page-container">
+    <div class="map-toolbar">
+        <div class="map-search-box">
+            <input type="text" id="searchInput" placeholder="Search location..." onkeypress="if(event.key==='Enter') searchLocation()">
+            <button class="btn btn-primary btn-sm" onclick="searchLocation()">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="locateMe()">
+                <i class="fas fa-crosshairs"></i> My Location
+            </button>
+        </div>
+        
+        <div class="map-legend-inline">
+            <div class="legend-item-inline">
+                <div class="legend-dot severe"></div>
+                <span>Severe</span>
+            </div>
+            <div class="legend-item-inline">
+                <div class="legend-dot high"></div>
+                <span>High</span>
+            </div>
+            <div class="legend-item-inline">
+                <div class="legend-dot moderate"></div>
+                <span>Moderate</span>
+            </div>
+            <div class="legend-item-inline">
+                <div class="legend-dot low"></div>
+                <span>Low</span>
+            </div>
+            <div class="legend-item-inline">
+                <div class="legend-dot user"></div>
+                <span>User Report</span>
+            </div>
+            <div class="legend-item-inline">
+                <div class="legend-dot current"></div>
+                <span>You</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="map" style="flex: 1; border-radius: var(--radius-lg); overflow: hidden;"></div>
+</div>
+
+@section Scripts {
+    <script>
+        let map;
+        let markers = [];
+        let currentLocationMarker = null;
+
+        // Initialize map when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadFloodPoints();
+            locateMe();
+        });
+
+        function initMap() {
+            map = L.map('map').setView([@Model.CenterLatitude, @Model.CenterLongitude], @Model.Zoom);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        async function loadFloodPoints() {
+            try {
+                const response = await fetch('/Map/GetFloodPoints');
+                if (!response.ok) throw new Error('Failed to load flood points');
+                
+                const points = await response.json();
+                
+                // Clear existing markers
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+                
+                points.forEach(point => {
+                    const marker = createMarker(point);
+                    markers.push(marker);
+                });
+                
+                console.log(`Loaded ${points.length} flood points`);
+            } catch (error) {
+                console.error('Error loading flood points:', error);
+            }
+        }
+
+        function createMarker(point) {
+            let iconClass, colorClass, popupContent;
+            
+            if (point.type === 'api') {
+                // API flood data markers
+                const severity = point.severity || 0;
+                let severityClass = severity >= 75 ? 'severe' : 
+                                   severity >= 50 ? 'high' : 
+                                   severity >= 25 ? 'moderate' : 'low';
+                
+                const iconHtml = `<div class="flood-marker ${severityClass}"></div>`;
+                
+                popupContent = `
+                    <div style="min-width: 200px;">
+                        <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
+                            Flood Risk: ${severity}%
+                        </h4>
+                        <p style="margin: 0 0 0.5rem; font-size: 0.875rem;">${point.description}</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">
+                            ${new Date(point.createdAt).toLocaleString()}
+                        </p>
+                    </div>
+                `;
+                
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-div-icon',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                
+                const marker = L.marker([point.latitude, point.longitude], { icon }).addTo(map);
+                marker.bindPopup(popupContent);
+                return marker;
+                
+            } else {
+                // User report markers
+                const iconHtml = `<div class="user-marker"><i class="fas fa-user"></i></div>`;
+                
+                popupContent = `
+                    <div style="min-width: 220px;">
+                        <h4 style="margin: 0 0 0.5rem; font-size: 1rem;">${point.title}</h4>
+                        ${point.imagePath ? `<img src="${point.imagePath}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 0.5rem;">` : ''}
+                        <p style="margin: 0 0 0.5rem; font-size: 0.875rem;">${point.description}</p>
+                        <a href="/Posts/Details/${point.id}" style="font-size: 0.875rem; color: var(--primary-color);">View Report</a>
+                    </div>
+                `;
+                
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-div-icon',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+                
+                const marker = L.marker([point.latitude, point.longitude], { icon }).addTo(map);
+                marker.bindPopup(popupContent);
+                return marker;
+            }
+        }
+
+        function locateMe() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    // Remove existing current location marker
+                    if (currentLocationMarker) {
+                        map.removeLayer(currentLocationMarker);
+                    }
+                    
+                    // Add current location marker
+                    const iconHtml = `<div class="current-location-marker"></div>`;
+                    const icon = L.divIcon({
+                        html: iconHtml,
+                        className: 'custom-div-icon',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    
+                    currentLocationMarker = L.marker([lat, lng], { icon }).addTo(map);
+                    currentLocationMarker.bindPopup('<strong>You are here</strong>');
+                    
+                    // Center map on current location
+                    map.setView([lat, lng], 14);
+                    
+                    // Check flood risk at this location
+                    checkFloodRisk(lat, lng);
+                },
+                (error) => {
+                    console.warn('Geolocation error:', error);
+                    alert('Could not get your location. Please ensure location services are enabled.');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        }
+
+        async function checkFloodRisk(lat, lng) {
+            try {
+                const response = await fetch(`/Map/CheckLocation?lat=${lat}&lon=${lng}`);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                if (data.error) return;
+                
+                let riskColor = data.severity >= 60 ? '#ef4444' : 
+                               data.severity >= 30 ? '#f59e0b' : '#22c55e';
+                
+                if (currentLocationMarker) {
+                    currentLocationMarker.bindPopup(`
+                        <div style="min-width: 180px;">
+                            <strong>You are here</strong>
+                            <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+                            <p style="margin: 0; font-size: 0.875rem;">
+                                <strong>Risk Level:</strong> 
+                                <span style="color: ${riskColor}; font-weight: 600;">${data.riskLevel}</span>
+                            </p>
+                            <p style="margin: 0.25rem 0 0; font-size: 0.75rem; color: var(--text-muted);">
+                                ${data.description}<br>
+                                Precipitation: ${data.precipitation}mm
+                            </p>
+                        </div>
+                    `);
+                }
+            } catch (error) {
+                console.warn('Could not check flood risk:', error);
+            }
+        }
+
+        async function searchLocation() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            try {
+                const response = await fetch(`/Map/SearchLocation?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('Search failed');
+                
+                const results = await response.json();
+                
+                if (results.length === 0) {
+                    alert('Location not found. Try a different search term.');
+                    return;
+                }
+                
+                // Use first result
+                const location = results[0];
+                map.setView([location.lat, location.lon], 13);
+                
+                // Add a temporary marker
+                const marker = L.marker([location.lat, location.lon]).addTo(map);
+                marker.bindPopup(`<strong>${location.name}</strong>`).openPopup();
+                
+                // Remove marker after 5 seconds
+                setTimeout(() => map.removeLayer(marker), 5000);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('Search failed. Please try again.');
+            }
+        }
+
+        // Refresh flood points every 5 minutes
+        setInterval(loadFloodPoints, 5 * 60 * 1000);
+    </script>
+}
