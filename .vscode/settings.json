@@ -1,0 +1,13 @@
+{
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#ea6962",
+    "statusBar.debuggingBackground": "#62e3ea",
+    "statusBar.debuggingForeground": "#15202b",
+    "statusBar.foreground": "#15202b",
+    "statusBarItem.hoverBackground": "#e43e35",
+    "statusBarItem.remoteBackground": "#ea6962",
+    "statusBarItem.remoteForeground": "#15202b"
+  },
+  "peacock.color": "#ea6962",
+  "dotnet.defaultSolution": "BanjirWatch.slnx"
+}
